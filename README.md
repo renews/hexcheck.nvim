@@ -26,7 +26,7 @@ Install it with your preferred plugin manager. Example using [`lazy.nvim`](https
   "renews/hexcheck.nvim",
   cmd = "HexCheck",
   opts = {
-    highlight_color = "#8ec07c",
+    highlight_color = "#123716",
     italic = true,
     bold = false,
     message_prefix = "new version available ",

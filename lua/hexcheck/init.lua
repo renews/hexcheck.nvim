@@ -3,7 +3,7 @@ local notify = vim.notify
 local notify_once = vim.notify_once
 
 local defaults = {
-	highlight_color = "#8ec07c",
+	highlight_color = "#123716",
 	italic = true,
 	bold = false,
 	message_prefix = "new version available ",
@@ -55,7 +55,9 @@ local function parse_mix_lock(filepath, requested)
 		return versions
 	end
 
-	for name, _, version in content:gmatch('["\']([^"\']+)["\']%s*([:=])%>?%s*{:%s*hex%s*,%s*:%s*[%w_]+%s*,%s*"([^"]+)"') do
+	for name, _, version in
+		content:gmatch('["\']([^"\']+)["\']%s*([:=])%>?%s*{:%s*hex%s*,%s*:%s*[%w_]+%s*,%s*"([^"]+)"')
+	do
 		if not requested or requested[name] then
 			versions[name] = version
 		end
@@ -91,12 +93,12 @@ local function fetch_latest_version(dep, callback)
 				end
 			end
 		end,
-	on_exit = function(_, code)
-		-- Marshal the callback back onto the main thread before touching Neovim APIs.
-		vim.schedule(function()
-			if code ~= 0 then
-				notify_once(string.format("Failed to fetch %s from hex.pm", package), vim.log.levels.WARN)
-				callback(nil)
+		on_exit = function(_, code)
+			-- Marshal the callback back onto the main thread before touching Neovim APIs.
+			vim.schedule(function()
+				if code ~= 0 then
+					notify_once(string.format("Failed to fetch %s from hex.pm", package), vim.log.levels.WARN)
+					callback(nil)
 					return
 				end
 
