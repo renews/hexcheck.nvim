@@ -2,6 +2,23 @@ local fn = vim.fn
 local notify = vim.notify
 local notify_once = vim.notify_once
 
+local defaults = {
+	highlight_color = "#8ec07c",
+	italic = true,
+	bold = false,
+	message_prefix = "new version available ",
+}
+
+local function copy(tbl)
+	local result = {}
+	for key, value in pairs(tbl) do
+		result[key] = value
+	end
+	return result
+end
+
+local config = copy(defaults)
+
 -- Scan the mix.exs file for dependency tuples and record their line numbers.
 local function parse_mix_exs(filepath)
 	local deps = {}
@@ -120,6 +137,25 @@ local ns = vim.api.nvim_create_namespace("hexcheck_updates")
 local highlight_group = "HexCheckVirtualText"
 local hl_initialized = false
 
+local function apply_highlight()
+	local opts = {}
+	if config.highlight_color then
+		opts.fg = config.highlight_color
+	end
+	if config.italic ~= nil then
+		opts.italic = config.italic
+	end
+	if config.bold ~= nil then
+		opts.bold = config.bold
+	end
+
+	if next(opts) == nil then
+		return
+	end
+
+	vim.api.nvim_set_hl(0, highlight_group, opts)
+end
+
 local function ensure_highlight()
 	if hl_initialized then
 		return
@@ -134,17 +170,18 @@ local function ensure_highlight()
 		defined = ok and existing and existing.foreground ~= nil
 	end
 
-	if not defined then
-		vim.api.nvim_set_hl(0, highlight_group, { fg = "#8ec07c", italic = true })
+	if config.highlight_color or config.italic ~= nil or config.bold ~= nil or not defined then
+		apply_highlight()
 	end
 
 	hl_initialized = true
 end
 
-local function show_virtual_text(buf, line, text)
+local function show_virtual_text(buf, line, version)
 	ensure_highlight() -- define the highlight group the first time we need it
+	local prefix = config.message_prefix or ""
 	vim.api.nvim_buf_set_extmark(buf, ns, line, 0, {
-		virt_text = { { text, highlight_group } },
+		virt_text = { { prefix .. version, highlight_group } },
 		virt_text_pos = "eol",
 	})
 end
@@ -167,6 +204,47 @@ local function resolve_mix_path(buf)
 end
 
 local M = {}
+
+function M.setup(opts)
+	opts = opts or {}
+
+	if opts.highlight_color ~= nil then
+		if opts.highlight_color == false then
+			config.highlight_color = nil
+		elseif type(opts.highlight_color) == "string" then
+			config.highlight_color = opts.highlight_color
+		else
+			notify("hexcheck: highlight_color must be a string", vim.log.levels.WARN)
+		end
+	end
+
+	if opts.italic ~= nil then
+		if type(opts.italic) == "boolean" then
+			config.italic = opts.italic
+		else
+			notify("hexcheck: italic must be true or false", vim.log.levels.WARN)
+		end
+	end
+
+	if opts.bold ~= nil then
+		if type(opts.bold) == "boolean" then
+			config.bold = opts.bold
+		else
+			notify("hexcheck: bold must be true or false", vim.log.levels.WARN)
+		end
+	end
+
+	if opts.message_prefix ~= nil then
+		if type(opts.message_prefix) == "string" then
+			config.message_prefix = opts.message_prefix
+		else
+			notify("hexcheck: message_prefix must be a string", vim.log.levels.WARN)
+		end
+	end
+
+	hl_initialized = false
+	ensure_highlight()
+end
 
 function M.check_updates()
 	local buf = vim.api.nvim_get_current_buf()
@@ -193,7 +271,7 @@ function M.check_updates()
 			if is_newer(dep.version, latest) then
 				-- Only draw annotations if the buffer is still around.
 				if vim.api.nvim_buf_is_valid(buf) then
-					show_virtual_text(buf, dep.line, "new version available " .. latest)
+					show_virtual_text(buf, dep.line, latest)
 				end
 			end
 		end)
