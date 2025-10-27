@@ -33,12 +33,35 @@ local function parse_mix_exs(filepath)
 		line_no = line_no + 1
 		local name, version = line:match('{:%s*([%w_]+)%s*,%s*"([^"]+)"')
 		if name and version then
-			table.insert(deps, { name = name, version = version, line = line_no - 1 })
+			table.insert(deps, { name = name, requirement = version, line = line_no - 1 })
 		end
 	end
 
 	file:close()
 	return deps
+end
+
+local function parse_mix_lock(filepath, requested)
+	local versions = {}
+	local file = io.open(filepath, "r")
+	if not file then
+		return versions
+	end
+
+	local content = file:read("*a")
+	file:close()
+
+	if not content then
+		return versions
+	end
+
+	for name, _, version in content:gmatch('["\']([^"\']+)["\']%s*([:=])%>?%s*{:%s*hex%s*,%s*:%s*[%w_]+%s*,%s*"([^"]+)"') do
+		if not requested or requested[name] then
+			versions[name] = version
+		end
+	end
+
+	return versions
 end
 
 local function fetch_latest_version(dep, callback)
@@ -203,6 +226,24 @@ local function resolve_mix_path(buf)
 	return nil
 end
 
+local function resolve_lock_path(mix_path)
+	if not mix_path or mix_path == "" then
+		return nil
+	end
+
+	local dir = mix_path:match("(.+)/[^/]+$")
+	if not dir or dir == "" then
+		dir = "."
+	end
+
+	local lock_path = dir .. "/mix.lock"
+	if fn.filereadable(lock_path) == 1 then
+		return lock_path
+	end
+
+	return nil
+end
+
 local M = {}
 
 function M.setup(opts)
@@ -262,18 +303,49 @@ function M.check_updates()
 		return
 	end
 
+	local requested = {}
+	for _, dep in ipairs(deps) do
+		requested[dep.name] = true
+	end
+
+	local lock_versions = {}
+	local lock_path = resolve_lock_path(mix_path)
+	if lock_path then
+		lock_versions = parse_mix_lock(lock_path, requested)
+	else
+		notify_once("mix.lock not found; using requirements from mix.exs", vim.log.levels.INFO)
+	end
+
+	local outstanding = #deps
+
+	local function mark_done()
+		outstanding = outstanding - 1
+		if outstanding == 0 then
+			notify("HexCheck is done!", vim.log.levels.INFO)
+		end
+	end
+
 	for _, dep in ipairs(deps) do
 		fetch_latest_version(dep, function(latest)
 			if not latest then
+				mark_done()
 				return
 			end
 
-			if is_newer(dep.version, latest) then
+			local current_version = lock_versions[dep.name] or dep.requirement
+			if not current_version then
+				mark_done()
+				return
+			end
+
+			if is_newer(current_version, latest) then
 				-- Only draw annotations if the buffer is still around.
 				if vim.api.nvim_buf_is_valid(buf) then
 					show_virtual_text(buf, dep.line, latest)
 				end
 			end
+
+			mark_done()
 		end)
 	end
 end
