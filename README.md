@@ -33,6 +33,7 @@ Install it with your preferred plugin manager. Example using [`lazy.nvim`](https
 }
 ```
 
+You dont need to specify the `opts` table or the `cmd` if you want the defaults.
 The plugin is a no-op until you run `:HexCheck`, so lazy-loading on the command is a good fit.
 
 ## Usage
