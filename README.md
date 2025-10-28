@@ -3,6 +3,7 @@
 Neovim plugin that checks the dependencies declared in `mix.exs` against the latest releases on [hex.pm](https://hex.pm) and annotates lines that have newer versions available.
 
 First plugin ever done, so if you found any errors or have suggestions feel free to open an issue or PR :)
+<img width="2560" height="1441" alt="screenshot-2025-09-29_15-51-16" src="https://github.com/user-attachments/assets/df4d7fb6-a0cb-4aff-9ebd-7650c6def6aa" />
 
 ## Features
 
