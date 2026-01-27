@@ -10,6 +10,7 @@ First plugin ever done, so if you found any errors or have suggestions feel free
 
 ## Features
 
+- Press `gd` to open the HexDocs for the package under the cursor.
 - Asynchronously queries hex.pm for each dependency in the current project.
 - Adds end-of-line virtual text highlighting the latest version when an update is available.
 - Plays nicely with existing highlights via the dedicated `HexCheckVirtualText` highlight group.
@@ -34,6 +35,7 @@ Install it with your preferred plugin manager. Example using [`lazy.nvim`](https
     italic = true,
     bold = false,
     message_prefix = "new version available ",
+    goto_hexdocs_key = "gd",
   },
 }
 ```
@@ -46,6 +48,7 @@ The plugin is a no-op until you run `:HexCheck`, so lazy-loading on the command 
 1. Open your project’s `mix.exs` (or any buffer inside the same project directory).
 2. Run `:HexCheck`.
 3. Dependencies that have newer releases than what is pinned in `mix.lock` will gain virtual text such as `new version available 1.2.3` at the end of their line.
+4. Press `gd` to open the HexDocs for the package under the cursor or open with `:lua require('hexcheck').open_hexdocs()`.
 
 The command looks for a `mix.exs` in the current buffer, falling back to the current working directory if necessary. Any warnings (missing file, request failures, etc.) are reported through `vim.notify`.
 
@@ -59,6 +62,7 @@ require("hexcheck").setup({
   italic = false,
   bold = true,
   message_prefix = "update available ",
+  goto_hexdocs_key = "gd",
 })
 ```
 
@@ -68,6 +72,7 @@ Options:
 - `italic` (`boolean`) – apply italic style; defaults to `true`.
 - `bold` (`boolean`) – apply bold style; defaults to `false`.
 - `message_prefix` (`string`) – text prepended to the fetched version (`"new version available "` by default). Include a trailing space if you want one.
+- `goto_hexdocs_key` (`string`) – key to open the HexDocs for the package under the cursor (`"gd"` by default).
 
 If you would rather manage highlight groups yourself, omit the option and set it manually:
 

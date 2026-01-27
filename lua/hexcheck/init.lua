@@ -7,6 +7,7 @@ local defaults = {
 	italic = true,
 	bold = false,
 	message_prefix = "new version available ",
+	goto_hexdocs_key = "gd",
 }
 
 local function copy(tbl)
@@ -158,6 +159,7 @@ local function is_newer(a, b)
 	return false
 end
 
+local augroup = vim.api.nvim_create_augroup("HexCheck", { clear = true })
 local ns = vim.api.nvim_create_namespace("hexcheck_updates")
 local highlight_group = "HexCheckVirtualText"
 local hl_initialized = false
@@ -246,6 +248,43 @@ local function resolve_lock_path(mix_path)
 	return nil
 end
 
+local function open_hexdocs()
+	local line = vim.api.nvim_get_current_line()
+	-- Look for :package_name or "package_name" or 'package_name'
+	-- Specifically targeting the dependency tuple format { :package, "version" }
+	local package = line:match('{:%s*([%w_]+)') or line:match('["\']([^"\']+)["\']%s*[:=]%>?')
+
+	if not package then
+		-- Fallback to word under cursor if pattern match fails
+		package = fn.expand("<cword>")
+	end
+
+	-- Clean up potential leading colon if it came from <cword> or general match
+	package = package:gsub("^:", "")
+
+	if package and package ~= "" then
+		package = package:lower()
+		local url = "https://hexdocs.pm/" .. package
+		notify("Opening HexDocs for " .. package .. "...", vim.log.levels.INFO)
+		if vim.ui and vim.ui.open then
+			vim.ui.open(url)
+		else
+			-- Fallback for older Neovim versions
+			local opener
+			if fn.has("mac") == 1 then
+				opener = "open"
+			elseif fn.has("win32") == 1 then
+				opener = "start"
+			else
+				opener = "xdg-open"
+			end
+			fn.jobstart({ opener, url }, { detach = true })
+		end
+	else
+		notify("Could not identify package name under cursor", vim.log.levels.WARN)
+	end
+end
+
 local M = {}
 
 function M.setup(opts)
@@ -285,8 +324,68 @@ function M.setup(opts)
 		end
 	end
 
+	if opts.goto_hexdocs_key ~= nil then
+		if type(opts.goto_hexdocs_key) == "string" or opts.goto_hexdocs_key == false then
+			config.goto_hexdocs_key = opts.goto_hexdocs_key
+		else
+			notify("hexcheck: goto_hexdocs_key must be a string or false", vim.log.levels.WARN)
+		end
+	end
+
+	local function apply_mappings(buf)
+		if not config.goto_hexdocs_key then
+			return
+		end
+
+		local bufname = vim.api.nvim_buf_get_name(buf)
+		local is_mix = bufname:match("mix%.exs$")
+
+		-- force gd to open the docs ignore lsp config in the mix.exs		
+		if is_mix then
+			vim.keymap.set("n", config.goto_hexdocs_key, open_hexdocs, {
+				buffer = buf,
+				silent = true,
+				desc = "Open HexDocs for package under cursor",
+			})
+		end
+	end
+
+	if config.goto_hexdocs_key ~= false then
+		vim.api.nvim_create_autocmd("FileType", {
+			group = augroup,
+			pattern = { "elixir" },
+			callback = function(args)
+				apply_mappings(args.buf)
+			end,
+		})
+
+		vim.api.nvim_create_autocmd("LspAttach", {
+			group = augroup,
+			callback = function(args)
+				local buf = args.buf
+				if vim.bo[buf].filetype == "elixir" then
+					-- add the necessary delay for our key to take precedence over the lsp
+					vim.defer_fn(function()
+						if vim.api.nvim_buf_is_valid(buf) then
+							apply_mappings(buf)
+						end
+					end, 100)
+				end
+			end,
+		})
+		
+		local current_buf = vim.api.nvim_get_current_buf()
+		if vim.bo[current_buf].filetype == "elixir" then
+			apply_mappings(current_buf)
+		end
+	end
+
 	hl_initialized = false
 	ensure_highlight()
+end
+
+function M.open_hexdocs()
+	open_hexdocs()
 end
 
 function M.check_updates()
