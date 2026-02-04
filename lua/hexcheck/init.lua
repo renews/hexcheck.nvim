@@ -215,15 +215,23 @@ end
 
 local function resolve_mix_path(buf)
 	local bufname = vim.api.nvim_buf_get_name(buf)
-	if bufname ~= "" and bufname:sub(-7) == "mix.exs" and fn.filereadable(bufname) == 1 then
-		return bufname
+	if bufname ~= "" then
+		if bufname:sub(-7) == "mix.exs" and fn.filereadable(bufname) == 1 then
+			return bufname
+		end
+
+		local start_dir = fn.fnamemodify(bufname, ":h")
+		local found = fn.findfile("mix.exs", start_dir .. ";")
+		if found and found ~= "" then
+			return found
+		end
 	end
 
 	local cwd = fn.getcwd()
 	if cwd and cwd ~= "" then
-		local candidate = cwd .. "/mix.exs"
-		if fn.filereadable(candidate) == 1 then
-			return candidate
+		local found = fn.findfile("mix.exs", cwd .. ";")
+		if found and found ~= "" then
+			return found
 		end
 	end
 

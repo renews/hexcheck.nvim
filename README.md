@@ -50,7 +50,7 @@ The plugin is a no-op until you run `:HexCheck`, so lazy-loading on the command 
 3. Dependencies that have newer releases than what is pinned in `mix.lock` will gain virtual text such as `new version available 1.2.3` at the end of their line.
 4. Press `gd` to open the HexDocs for the package under the cursor or open with `:lua require('hexcheck').open_hexdocs()`.
 
-The command looks for a `mix.exs` in the current buffer, falling back to the current working directory if necessary. Any warnings (missing file, request failures, etc.) are reported through `vim.notify`.
+The command searches for `mix.exs` by walking up from the current buffer’s directory (falling back to the current working directory). Any warnings (missing file, request failures, etc.) are reported through `vim.notify`.
 
 ## Configuration
 
