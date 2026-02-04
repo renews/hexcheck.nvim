@@ -40,8 +40,30 @@ Install it with your preferred plugin manager. Example using [`lazy.nvim`](https
 }
 ```
 
-You dont need to specify the `opts` table or the `cmd` if you want the defaults.
-The plugin is a no-op until you run `:HexCheck`, so lazy-loading on the command is a good fit.
+You don't need to specify the `opts` table or the `cmd` if you want the defaults.
+
+### About the `gd` shortcut to open the package documentation.
+
+The plugin is a no-op until you run `:HexCheck`, so lazy-loading on the command is a good fit. But if you lazy load,
+the `gd` mapping is not set until the plugin loads (i.e. after you run `:HexCheck`).
+
+If you want `gd` available immediately, load on filetype or key instead:
+
+```lua
+{
+  "renews/hexcheck.nvim",
+  ft = "elixir"
+}
+```
+
+OR 
+
+```lua
+{
+  "renews/hexcheck.nvim",
+  keys = { "gd" }
+}
+```
 
 ## Usage
 
@@ -68,7 +90,7 @@ require("hexcheck").setup({
 
 Options:
 
-- `highlight_color` (`string` or `false`) – hex color applied to the virtual text (`"#8ec07c"` by default). Use `false` to keep your own color.
+- `highlight_color` (`string` or `false`) – hex color applied to the virtual text (`"#8ec07c"` by default). Use `false` to keep your theme color.
 - `italic` (`boolean`) – apply italic style; defaults to `true`.
 - `bold` (`boolean`) – apply bold style; defaults to `false`.
 - `message_prefix` (`string`) – text prepended to the fetched version (`"new version available "` by default). Include a trailing space if you want one.
