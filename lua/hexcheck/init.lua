@@ -358,6 +358,8 @@ function M.setup(opts)
 		end
 	end
 
+	vim.api.nvim_clear_autocmds({ group = augroup })
+
 	if config.goto_hexdocs_key ~= false then
 		vim.api.nvim_create_autocmd("FileType", {
 			group = augroup,
