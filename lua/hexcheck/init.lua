@@ -278,15 +278,15 @@ local function open_hexdocs()
 			vim.ui.open(url)
 		else
 			-- Fallback for older Neovim versions
-			local opener
+			local command
 			if fn.has("mac") == 1 then
-				opener = "open"
+				command = { "open", url }
 			elseif fn.has("win32") == 1 then
-				opener = "start"
+				command = { "cmd.exe", "/c", "start", "", url }
 			else
-				opener = "xdg-open"
+				command = { "xdg-open", url }
 			end
-			fn.jobstart({ opener, url }, { detach = true })
+			fn.jobstart(command, { detach = true })
 		end
 	else
 		notify("Could not identify package name under cursor", vim.log.levels.WARN)
