@@ -243,9 +243,13 @@ local function resolve_lock_path(mix_path)
 		return nil
 	end
 
-	local dir = mix_path:match("(.+)/[^/]+$")
-	if not dir or dir == "" then
+	-- Normalize separators so lock resolution works on both Unix and Windows paths.
+	local normalized = mix_path:gsub("\\", "/")
+	local dir = normalized:match("^(.*)/[^/]+$")
+	if not dir then
 		dir = "."
+	elseif dir == "" then
+		dir = "/"
 	end
 
 	local lock_path = dir .. "/mix.lock"
