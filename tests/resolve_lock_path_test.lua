@@ -140,6 +140,13 @@ local function test_windows_path_lock_resolution()
 	local _, resolve_lock_path = load_module()
 	local checked = {}
 
+	vim.fn.has = function(feature)
+		if feature == "win32" or feature == "win64" then
+			return 1
+		end
+		return 0
+	end
+
 	vim.fn.filereadable = function(path)
 		table.insert(checked, path)
 		if path == "C:/Users/rene/project/mix.lock" then
@@ -156,7 +163,28 @@ local function test_windows_path_lock_resolution()
 	end
 end
 
+local function test_unix_path_with_backslash_keeps_directory_name()
+	local _, resolve_lock_path = load_module()
+	local checked = {}
+
+	vim.fn.filereadable = function(path)
+		table.insert(checked, path)
+		if path == "/tmp/demo\\folder/mix.lock" then
+			return 1
+		end
+		return 0
+	end
+
+	local lock_path = resolve_lock_path("/tmp/demo\\folder/mix.exs")
+	assert_eq(lock_path, "/tmp/demo\\folder/mix.lock", "unix path segments must preserve backslash characters")
+
+	if checked[1] ~= "/tmp/demo\\folder/mix.lock" then
+		error("unix backslash path probe should not rewrite directory names")
+	end
+end
+
 return {
 	test_unix_path_lock_resolution,
 	test_windows_path_lock_resolution,
+	test_unix_path_with_backslash_keeps_directory_name,
 }

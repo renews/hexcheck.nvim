@@ -244,7 +244,11 @@ local function resolve_lock_path(mix_path)
 	end
 
 	-- Normalize separators so lock resolution works on both Unix and Windows paths.
-	local normalized = mix_path:gsub("\\", "/")
+	local normalized = mix_path
+	if fn.has("win32") == 1 or fn.has("win64") == 1 then
+		normalized = mix_path:gsub("\\", "/")
+	end
+
 	local dir = normalized:match("^(.*)/[^/]+$")
 	if not dir then
 		dir = "."
@@ -252,7 +256,8 @@ local function resolve_lock_path(mix_path)
 		dir = "/"
 	end
 
-	local lock_path = dir .. "/mix.lock"
+	local separator = dir:sub(-1) == "/" and "" or "/"
+	local lock_path = dir .. separator .. "mix.lock"
 	if fn.filereadable(lock_path) == 1 then
 		return lock_path
 	end
@@ -264,7 +269,7 @@ local function open_hexdocs()
 	local line = vim.api.nvim_get_current_line()
 	-- Look for :package_name or "package_name" or 'package_name'
 	-- Specifically targeting the dependency tuple format { :package, "version" }
-	local package = line:match('{:%s*([%w_]+)') or line:match('["\']([^"\']+)["\']%s*[:=]%>?')
+	local package = line:match("{:%s*([%w_]+)") or line:match("[\"']([^\"']+)[\"']%s*[:=]%>?")
 
 	if not package then
 		-- Fallback to word under cursor if pattern match fails
@@ -352,7 +357,7 @@ function M.setup(opts)
 		local bufname = vim.api.nvim_buf_get_name(buf)
 		local is_mix = bufname:match("mix%.exs$")
 
-		-- force gd to open the docs ignore lsp config in the mix.exs		
+		-- force gd to open the docs ignore lsp config in the mix.exs
 		if is_mix then
 			vim.keymap.set("n", config.goto_hexdocs_key, open_hexdocs, {
 				buffer = buf,
@@ -387,7 +392,7 @@ function M.setup(opts)
 				end
 			end,
 		})
-		
+
 		local current_buf = vim.api.nvim_get_current_buf()
 		if vim.bo[current_buf].filetype == "elixir" then
 			apply_mappings(current_buf)
